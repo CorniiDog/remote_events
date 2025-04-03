@@ -208,7 +208,7 @@ class RemoteFunctions:
         print(f"Starting server at http://{host}:{port} ...")
         self.app.run(host=host, port=port, threaded=True)
 
-    def connect_to_server(self, address, port):
+    def connect_to_server(self, address, port) -> bool:
         """
         Set the remote server address for client operations.
 
@@ -224,7 +224,7 @@ class RemoteFunctions:
         # Ping the server with default timeout to ensure it is reachable.
         self.ping()
 
-    def ping(self, timeout_seconds: float = 10.0):
+    def ping(self, timeout_seconds: float = 5.0):
         """
         Ping the remote server to check connectivity.
 
