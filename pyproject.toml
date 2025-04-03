@@ -8,8 +8,7 @@ version = "0.1.0"
 authors = [
   { name="Connor White", email="connor.sw.personal@gmail.com" },
 ]
-description = "Connor's Remote Events (RE) is a simple library that allows the end-user to call python
-functions from another server."
+description = "Connor's Remote Events (RE) is a simple library that allows the end-user to call python functions from another server."
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
@@ -25,5 +24,5 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/CorniiDog/lightning_parser_lib"
-Issues = "https://github.com/CorniiDog/lightning_parser_lib/issues"
+Homepage = "https://github.com/CorniiDog/remote_events"
+Issues = "https://github.com/CorniiDog/remote_events/issues"
