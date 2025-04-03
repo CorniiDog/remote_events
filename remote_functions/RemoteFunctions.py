@@ -26,6 +26,7 @@ Usage Example:
 import pickle
 from flask import Flask, request, Response
 import requests
+from typing import List, Callable
 
 class RemoteFunctions:
     """
@@ -55,17 +56,30 @@ class RemoteFunctions:
         self.server_url = None
         self.app = None
 
-    def add_function(self, func):
+    def add_function(self, func: Callable):
         """
         Add a function to the local function registry using its __name__.
 
         Parameters:
-            func (callable): The function to register for remote invocation.
+            func (Callable): The function to register for remote invocation.
 
         Returns:
             None
         """
         self.functions[func.__name__] = func
+
+    def add_functions(self, funcs: List[Callable]):
+        """
+        Add a list of functions to the local function registry using its __name__.
+
+        Parameters:
+            func (List[Callable]): The function to register for remote invocation.
+
+        Returns:
+            None
+        """
+        for func in funcs:
+            self.add_function(func)
 
     def start_server(self, host="0.0.0.0", port=5000):
         """
