@@ -217,12 +217,12 @@ class RemoteFunctions:
             port (int): The port number on which the remote server is listening.
 
         Returns:
-            None
+            bool: True if the server responds successfully to the ping, otherwise raises an exception.
         """
         self.server_url = f"http://{address}:{port}"
 
         # Ping the server with default timeout to ensure it is reachable.
-        self.ping()
+        return self.ping()
 
     def ping(self, timeout_seconds: float = 5.0):
         """
@@ -296,6 +296,8 @@ class RemoteFunctions:
         """
         if not self.server_url:
             raise ValueError("Server URL not set. Use connect_to_server() first.")
+        self.ping() # First ping to ensure connectivity
+        
         payload = {
             "function": func_name,
             "args": args,

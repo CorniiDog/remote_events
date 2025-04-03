@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: remote_events
-Version: 0.1.5
+Version: 0.1.6
 Summary: Connor's Remote Events (RE) is a simple library that allows the end-user to call python functions from another server.
 Author-email: Connor White <connor.sw.personal@gmail.com>
 License-Expression: MIT
