@@ -137,6 +137,11 @@ class RemoteFunctions:
         self.app = Flask(__name__)
         rf = self  # capture self in the route closures
 
+        @self.app.route("/ping", methods=["GET"])
+        def ping_route():
+            # Simple ping endpoint to verify server availability.
+            return Response(pack_message("pong"), mimetype='application/octet-stream')
+
         @self.app.route("/functions", methods=["GET"])
         def list_functions():
             """
@@ -215,6 +220,36 @@ class RemoteFunctions:
             None
         """
         self.server_url = f"http://{address}:{port}"
+
+        # Ping the server with default timeout to ensure it is reachable.
+        self.ping()
+
+    def ping(self, timeout_seconds: float = 10.0):
+        """
+        Ping the remote server to check connectivity.
+
+        Parameters:
+            timeout_seconds (float): The timeout for the ping request in seconds.
+
+        Returns:
+            True if the server responds with "pong", raises an Exception otherwise.
+        """
+        if not self.server_url:
+            raise ValueError("Server URL not set. Use connect_to_server() first.")
+        try:
+            response = requests.get(f"{self.server_url}/ping", timeout=timeout_seconds)
+            if response.status_code == 200:
+                payload = unpack_message(response.content)
+                if payload == "pong":
+                    return True
+                else:
+                    raise Exception("Unexpected ping response")
+            else:
+                raise Exception(f"Ping failed: status {response.status_code}")
+        except requests.Timeout:
+            raise Exception("Ping timed out")
+        except Exception as e:
+            raise Exception("Ping error: " + str(e))
 
     def get_functions(self):
         """
