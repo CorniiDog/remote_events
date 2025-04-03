@@ -26,7 +26,44 @@ Usage Example:
 import pickle
 from flask import Flask, request, Response
 import requests
-from typing import List, Callable
+from typing import List, Callable, Any
+import hashlib
+
+def _generate_hash_from_data(data: Any) -> str:
+    pickled_data = pickle.dumps(data)
+    return hashlib.sha256(pickled_data).hexdigest()
+
+def pack_message(data) -> bytes:
+    """
+    Package a payload with its hash.
+    
+    The message is a dictionary containing:
+      - 'payload': the actual data.
+      - 'hash': the SHA-256 hash computed from the pickled payload.
+    """
+    message = {
+        "payload": data,
+        "hash": _generate_hash_from_data(data)
+    }
+    return pickle.dumps(message)
+
+def unpack_message(message_bytes: bytes):
+    """
+    Unpack a message and verify its hash.
+    
+    Raises a ValueError if the structure is invalid or the hash does not match.
+    """
+    try:
+        message = pickle.loads(message_bytes)
+        if not isinstance(message, dict) or "payload" not in message or "hash" not in message:
+            raise ValueError("Invalid message structure: missing payload or hash")
+        payload = message["payload"]
+        received_hash = message["hash"]
+        if _generate_hash_from_data(payload) != received_hash:
+            raise ValueError("Hash verification failed")
+        return payload
+    except Exception as e:
+        raise ValueError(f"Invalid message: {str(e)}")
 
 class RemoteFunctions:
     """
@@ -107,8 +144,13 @@ class RemoteFunctions:
             Returns:
                 A pickled response containing a list of function names.
             """
-            pickled_functions = pickle.dumps(list(rf.functions.keys()))
-            return Response(pickled_functions, mimetype='application/octet-stream')
+            try:
+                payload = list(rf.functions.keys())
+                response_message = pack_message(payload)
+                return Response(response_message, mimetype='application/octet-stream')
+            except Exception as e:
+                error_resp = pack_message({"error": "Server error: " + str(e)})
+                return Response(error_resp, status=500, mimetype='application/octet-stream')
 
         @self.app.route("/call", methods=["POST"])
         def call_function():
@@ -123,10 +165,11 @@ class RemoteFunctions:
             Returns:
                 A binary response with the pickled result of the function call, or a pickled error message.
             """
+            # Unpack and verify the incoming message.
             try:
-                data = pickle.loads(request.data)
+                data = unpack_message(request.data)
             except Exception as e:
-                error_resp = pickle.dumps({"error": "Invalid pickled data: " + str(e)})
+                error_resp = pack_message({"error": "Server error: " + str(e)})
                 return Response(error_resp, status=400, mimetype='application/octet-stream')
 
             func_name = data.get("function")
@@ -134,17 +177,17 @@ class RemoteFunctions:
             kwargs = data.get("kwargs", {})
 
             if func_name not in rf.functions:
-                error_resp = pickle.dumps({"error": f"Function '{func_name}' not found"})
+                error_resp = pack_message({"error": f"Function '{func_name}' not found"})
                 return Response(error_resp, status=404, mimetype='application/octet-stream')
 
             try:
                 result = rf.functions[func_name](*args, **kwargs)
             except Exception as e:
-                error_resp = pickle.dumps({"error": str(e)})
+                error_resp = pack_message({"error": "Server error: " + str(e)})
                 return Response(error_resp, status=500, mimetype='application/octet-stream')
 
-            pickled_result = pickle.dumps(result)
-            return Response(pickled_result, mimetype='application/octet-stream')
+            response_message = pack_message(result)
+            return Response(response_message, mimetype='application/octet-stream')
 
         print(f"Starting server at http://{host}:{port} ...")
         self.app.run(host=host, port=port, threaded=True)
@@ -179,7 +222,10 @@ class RemoteFunctions:
             raise ValueError("Server URL not set. Use connect_to_server() first.")
         response = requests.get(f"{self.server_url}/functions")
         if response.status_code == 200:
-            return pickle.loads(response.content)
+            try:
+                return unpack_message(response.content)
+            except Exception as e:
+                raise Exception("Client error: " + str(e))
         else:
             raise Exception(f"Error retrieving functions: {response.status_code}, {response.text}")
 
@@ -209,10 +255,13 @@ class RemoteFunctions:
             "args": args,
             "kwargs": kwargs
         }
-        pickled_payload = pickle.dumps(payload)
+        packaged_payload = pack_message(payload)
         headers = {'Content-Type': 'application/octet-stream'}
-        response = requests.post(f"{self.server_url}/call", data=pickled_payload, headers=headers)
+        response = requests.post(f"{self.server_url}/call", data=packaged_payload, headers=headers)
         if response.status_code == 200:
-            return pickle.loads(response.content)
+            try:
+                return unpack_message(response.content)
+            except Exception as e:
+                raise Exception("Client error: " + str(e))
         else:
             raise Exception(f"Error calling remote function: {response.status_code}, {response.text}")
