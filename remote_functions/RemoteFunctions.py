@@ -28,6 +28,7 @@ from flask import Flask, request, Response
 import requests
 from typing import List, Callable, Any
 import hashlib
+import inspect
 
 def _generate_hash_from_data(data: Any) -> str:
     pickled_data = pickle.dumps(data)
@@ -145,7 +146,17 @@ class RemoteFunctions:
                 A pickled response containing a list of function names.
             """
             try:
-                payload = list(rf.functions.keys())
+                function_list = []
+                for key in rf.functions.keys():
+                    func_data = [key]
+                    sig = inspect.signature(rf.functions[key])
+                    for param_name, param in sig.parameters.items():
+                        combined_details = f"{param_name}: {param.annotation} = {param.default}"
+                        func_data.append(combined_details)
+                    function_list.append(func_data)
+
+
+                payload = function_list
                 response_message = pack_message(payload)
                 return Response(response_message, mimetype='application/octet-stream')
             except Exception as e:
