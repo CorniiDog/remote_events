@@ -210,9 +210,14 @@ class RemoteFunctions:
                 for key in rf.functions.keys():
                     func_data = [key]
                     sig = inspect.signature(rf.functions[key])
+
                     for param_name, param in sig.parameters.items():
                         combined_details = f"{param_name}: {param.annotation} = {param.default}"
                         func_data.append(combined_details)
+
+                    docstring = inspect.getdoc(rf.functions[key])
+                    func_data.append(docstring)
+                    
                     function_list.append(func_data)
 
                 payload = function_list
