@@ -50,9 +50,7 @@ Usage Example:
 All communication between client and server includes a hashed verification of the payload to prevent
 tampering, ensuring secure and reliable remote function execution.
 """
-import dill
-dill.settings['recurse'] = True
-import dill as pickle
+import pickle
 from flask import Flask, request, Response
 import requests
 from typing import List, Callable, Any, Union
