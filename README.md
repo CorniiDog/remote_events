@@ -37,7 +37,7 @@ import sys
 from typing import Any
 
 # Initialize RemoteFunctions with password authentication.
-rf = RemoteFunctions(password="Whoop!-", is_queue=True)
+rf = RemoteFunctions(password="Whoop!-")
 
 @rf.as_remote()
 def a(b: Any) -> Any:
@@ -67,6 +67,7 @@ if __name__ == "__main__":
         print("Result:", result)
     else:
         print("Usage: python main.py [server|client]")
+
 
 ```
 
