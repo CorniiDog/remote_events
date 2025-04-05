@@ -8,7 +8,7 @@ To install: `pip install remote-events`
 
 ## First example
 
-### Example main.py
+### `main.py`
 
 ```py
 """
