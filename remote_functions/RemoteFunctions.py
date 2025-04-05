@@ -70,7 +70,7 @@ def _generate_hash_from_data(data: Any) -> str:
     Returns:
         str: The hexadecimal SHA-256 hash of the pickled data.
     """
-    pickled_data = pickle.dumps(data)
+    pickled_data = pickle.dumps(data, protocol=4)
     return hashlib.sha256(pickled_data).hexdigest()
 
 def pack_message(data) -> bytes:
