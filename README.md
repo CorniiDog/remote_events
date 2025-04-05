@@ -5,6 +5,8 @@ Connor's Remote Events (RE) is a simple library that allows the end-user to call
 If you want to offload automation tasks to another device, this is the package to use. It is extremely reliable
 and robust for near-effort python automation
 
+To install: `pip install remote-events`
+
 ## Example main.py
 
 In two terminals:
