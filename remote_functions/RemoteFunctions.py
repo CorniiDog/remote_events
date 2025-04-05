@@ -1,29 +1,56 @@
 """
 RemoteFunctions Module
+----------------------
 
-This module defines the RemoteFunctions class which facilitates remote function execution over HTTP.
-It allows registration of functions on a server and remote invocation from a client using a Flask-based
-API for serving and the requests module for client operations. All communications between client and server
-are serialized using pickle, rather than JSON, to ensure greater reliability.
+This module implements a framework for executing functions remotely over HTTP. It leverages a Flask-based
+server to register and expose functions, while clients use the requests library to invoke these functions
+remotely. All data exchanged between client and server is serialized with pickle, ensuring robust and
+reliable communication.
 
-Optional Password Feature:
-    - An optional password can be provided during initialization.
-    - The password is hashed using SHA-256 and stored.
-    - Every remote call will include the hashed password.
-    - The server validates the provided hashed password before processing the request.
+Key Features:
+    • Function Registration: Easily register functions to be invoked remotely.
+    • Remote Invocation: Call functions on a remote server using positional and keyword arguments.
+    • Data Integrity: Each message is packed with a SHA-256 hash to verify its integrity.
+    • Optional Password Authentication:
+          - Supply a password during initialization, which is hashed using SHA-256.
+          - The hashed password is automatically included in every remote call.
+          - The server validates the provided hashed password before processing requests.
 
 Usage Example:
-    # As a server:
+    # Server Mode:
+    from remote_functions import RemoteFunctions
+
     rf = RemoteFunctions(password="my_secret")
-    rf.add_function(my_function)
+    
+    @rf.as_remote()
+    def my_function(x, y):
+        return x + y
+
+    # Start the Flask server to listen on all interfaces at port 5000.
     rf.start_server(host="0.0.0.0", port=5000)
 
-    # As a client:
+
+    # Client Mode:
+    from remote_functions import RemoteFunctions
+
     rf = RemoteFunctions(password="my_secret")
     rf.connect_to_server("localhost", 5000)
-    functions = rf.get_functions()
-    result = rf.call_remote_function("my_function", arg1, arg2)
+
+    # Option 1: Direct remote invocation.
+    result = rf.call_remote_function("my_function", 10, 20)
+    print(result)
+
+    # Option 2: Using the remote decorator.
+    @rf.as_remote()
+    def my_function(x, y):
+        pass  # Function body is not executed on the client.
+    result = my_function(10, 20)
+    print(result)
+
+All communication between client and server includes a hashed verification of the payload to prevent
+tampering, ensuring secure and reliable remote function execution.
 """
+
 
 import pickle
 from flask import Flask, request, Response
@@ -31,6 +58,7 @@ import requests
 from typing import List, Callable, Any
 import hashlib
 import inspect
+import functools
 
 def _generate_hash_from_data(data: Any) -> str:
     """
@@ -122,6 +150,22 @@ class RemoteFunctions:
         self.server_url = None
         self.app = None
         self._password_hash = hashlib.sha256(password.encode()).hexdigest() if password else None
+        self.is_server = True
+        self.is_client = False
+
+    def as_remote(self):
+        def decorator(func):
+            if func.__name__ not in self.functions:
+                self.add_function(func)
+
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                if self.is_server:
+                    return func(*args, **kwargs)
+                else:
+                    return self.call_remote_function(func.__name__, *args, **kwargs)
+            return wrapper
+        return decorator
 
     def add_function(self, func: Callable):
         """
@@ -180,6 +224,9 @@ class RemoteFunctions:
         """
         self.app = Flask(__name__)
         rf = self  # capture self in the route closures
+
+        self.is_server = True
+        self.is_client = False
 
         @self.app.route("/ping", methods=["GET"])
         def ping_route():
@@ -277,6 +324,7 @@ class RemoteFunctions:
 
         print(f"Starting server at http://{host}:{port} ...")
         self.app.run(host=host, port=port, threaded=True)
+        return True
 
     def connect_to_server(self, address, port) -> bool:
         """
@@ -289,6 +337,8 @@ class RemoteFunctions:
         Returns:
             bool: True if the server responds successfully to the ping, otherwise raises an exception.
         """
+        self.is_server = False
+        self.is_client = True
         self.server_url = f"http://{address}:{port}"
         return self.ping()
 

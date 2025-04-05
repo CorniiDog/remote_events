@@ -1,15 +1,3 @@
-# Connor's Remote Events (RE)
-
-Connor's Remote Events (RE) is a simple library that allows the end-user to call python functions from another server. This is highly powerful if you are coding an application that offloads processes to another server.
-
-## Example main.py
-
-In two terminals:
-1. First terminal, run the server with `python main.py server`
-
-2. Second terminal, run the client with `python main.py client`
-
-```py
 """
 Main Example Script for RemoteFunctions
 
@@ -64,6 +52,3 @@ if __name__ == "__main__":
         print("Result:", result)
     else:
         print("Usage: python main.py [server|client]")
-
-```
-
