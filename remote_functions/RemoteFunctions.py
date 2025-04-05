@@ -177,9 +177,6 @@ class RemoteFunctions:
         def decorator(func):
             if func.__name__ not in self.functions:
                 self.add_function(func)
-
-            if self.is_server and (not self.is_queue or not self.server_started): 
-                return func
             
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
