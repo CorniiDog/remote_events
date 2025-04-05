@@ -59,6 +59,8 @@ from typing import List, Callable, Any
 import hashlib
 import inspect
 import functools
+from process_managerial import QueueSystem
+from process_managerial import QueueStatus
 
 def _generate_hash_from_data(data: Any) -> str:
     """
@@ -133,7 +135,7 @@ class RemoteFunctions:
       - The server validates the provided hashed password against its stored hash.
     """
 
-    def __init__(self, password: str = None):
+    def __init__(self, password: str = None, is_queue:bool = False, cache_clear_days: int = 2):
         """
         Initialize a RemoteFunctions instance.
 
@@ -153,6 +155,19 @@ class RemoteFunctions:
         self.is_server = True
         self.is_client = False
 
+        self.is_queue = is_queue
+        if is_queue:
+            self.qs = QueueSystem(clear_hexes_after_days=cache_clear_days)
+
+    def _queue_function_with_wait(self, func, *args, **kwargs):
+        queue_hex = self.qs.queue_function(func, *args, **kwargs)
+        self.qs.wait_until_hex_finished(queue_hex)
+        result_properties = self.qs.get_properties(queue_hex)
+        if result_properties.status == QueueStatus.RETURNED_CLEAN:
+            return result_properties.result
+        else:
+            return f"Error: {result_properties.status} - {result_properties.output}"
+
     def as_remote(self):
         def decorator(func):
             if func.__name__ not in self.functions:
@@ -161,7 +176,10 @@ class RemoteFunctions:
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
                 if self.is_server:
-                    return func(*args, **kwargs)
+                    if not self.is_queue:                        
+                        return func(*args, **kwargs)
+                    else:
+                        return self._queue_function_with_wait(func, *args, **kwargs)
                 else:
                     return self.call_remote_function(func.__name__, *args, **kwargs)
             return wrapper
@@ -314,7 +332,10 @@ class RemoteFunctions:
 
             try:
                 # Execute the function with the provided arguments.
-                result = rf.functions[func_name](*args, **kwargs)
+                if not self.is_queue:
+                    result = rf.functions[func_name](*args, **kwargs)
+                else:
+                    result = self._queue_function_with_wait(rf.functions[func_name], *args, **kwargs)
             except Exception as e:
                 error_resp = pack_message({"error": "Server error: " + str(e)})
                 return Response(error_resp, status=500, mimetype='application/octet-stream')
