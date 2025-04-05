@@ -178,13 +178,13 @@ class RemoteFunctions:
             if func.__name__ not in self.functions:
                 self.add_function(func)
 
-            if not self.is_queue or (self.is_server and not self.server_started): 
+            if self.is_server and (not self.is_queue or not self.server_started): 
                 return func
             
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
                 if self.is_server:
-                    if not self.is_queue or (self.is_server and not self.server_started):                        
+                    if self.is_server and (not self.is_queue or not self.server_started):                        
                         return func(*args, **kwargs)
                     else:
                         return self._queue_function_with_wait(func, *args, **kwargs)
@@ -342,7 +342,7 @@ class RemoteFunctions:
 
             try:
                 # Execute the function with the provided arguments.
-                if not self.is_queue or (self.is_server and not self.server_started):
+                if self.is_server and (not self.is_queue or not self.server_started):
                     result = rf.functions[func_name](*args, **kwargs)
                 else:
                     result = self._queue_function_with_wait(rf.functions[func_name], *args, **kwargs)
