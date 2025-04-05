@@ -124,6 +124,8 @@ class RemoteFunctions:
         self.server_started = False
         self._password_hash = self.set_password(password=password)
         self.no_queue_list = []
+        self.ssl_context = None  # Initialize SSL context attribute
+
 
         self.is_queue = is_queue
         self.qs = QueueSystemLite()
@@ -138,7 +140,15 @@ class RemoteFunctions:
         self.qs.wait_until_hex_finished = self.as_remote_no_queue()(self.qs.wait_until_hex_finished)
         self.qs.requeue_hex = self.as_remote_no_queue()(self.qs.requeue_hex)
         
-
+    def set_ssl_context(self, cert_file: str, key_file: str):
+        """
+        Set the SSL context for HTTPS communication.
+        
+        Parameters:
+            cert_file (str): Path to the certificate file (e.g., 'cert.pem').
+            key_file (str): Path to the key file (e.g., 'key.pem').
+        """
+        self.ssl_context = (cert_file, key_file)
 
     def set_password(self, password) -> str:
         if password == None:
@@ -355,7 +365,7 @@ class RemoteFunctions:
         if self.is_queue and not self.qs.is_running:
             self.qs.start_queuesystem() # Starts queue system in separate thread
 
-        self.app.run(host=host, port=port, threaded=True)
+        self.app.run(host=host, port=port, threaded=True, ssl_context=self.ssl_context)
         self.server_started = False # After if not working
         return True
 

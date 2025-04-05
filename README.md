@@ -138,3 +138,16 @@ In two terminals:
 1. First terminal, run the server with `python server.py`
 
 2. Second terminal, run the client with `python client.py`
+
+
+## Last note
+
+You can set SSL context via
+
+```
+
+rf.set_ssl_context("cert.pem", "key.pem")
+```
+
+
+More information about creating FLASK SSL contexts [here](https://kracekumar.com/post/54437887454/ssl-for-flask-local-development/)

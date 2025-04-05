@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: remote_events
-Version: 0.2.43
+Version: 0.2.44
 Summary: Connor's Remote Events (RE) is a simple library that allows the end-user to call python functions from another server.
 Author-email: Connor White <connor.sw.personal@gmail.com>
 License-Expression: MIT
@@ -157,3 +157,16 @@ In two terminals:
 1. First terminal, run the server with `python server.py`
 
 2. Second terminal, run the client with `python client.py`
+
+
+## Last note
+
+You can set SSL context via
+
+```
+
+rf.set_ssl_context("cert.pem", "key.pem")
+```
+
+
+More information about creating FLASK SSL contexts [here](https://kracekumar.com/post/54437887454/ssl-for-flask-local-development/)
