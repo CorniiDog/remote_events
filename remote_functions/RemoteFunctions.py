@@ -128,10 +128,10 @@ class RemoteFunctions:
         self.is_queue = is_queue
         self.qs = QueueSystemLite()
 
-        # Add functions from it
+        # Add functions from queue system lite
         self.qs.get_hexes = self.as_remote_no_queue()(self.qs.get_hexes)
-        self.qs.get_properties = self.as_remote_no_queue()(self.qs.get_properties)
         self.qs.clear_hexes = self.as_remote_no_queue()(self.qs.clear_hexes)
+        self.qs.cancel_queue = self.as_remote_no_queue()(self.qs.cancel_queue)
         self.qs.wait_until_finished = self.as_remote_no_queue()(self.qs.wait_until_finished)
         self.qs.wait_until_hex_finished = self.as_remote_no_queue()(self.qs.wait_until_hex_finished)
         
