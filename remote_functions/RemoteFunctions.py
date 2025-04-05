@@ -123,14 +123,18 @@ class RemoteFunctions:
         self.is_client = False
         self.server_started = False
         self._password_hash = self.set_password(password=password)
+        self.no_queue_list = []
 
         self.is_queue = is_queue
         self.qs = QueueSystemLite()
 
         # Add functions from it
-        for name, method in inspect.getmembers(self.qs, predicate=inspect.ismethod):
-            if not name.startswith('__'):
-                setattr(self.qs, name, self.as_remote()(method))
+        self.qs.get_hexes = self.as_remote_no_queue()(self.qs.get_hexes)
+        self.qs.get_properties = self.as_remote_no_queue()(self.qs.get_properties)
+        self.qs.clear_hexes = self.as_remote_no_queue()(self.qs.clear_hexes)
+        self.qs.wait_until_finished = self.as_remote_no_queue()(self.qs.wait_until_finished)
+        self.qs.wait_until_hex_finished = self.as_remote_no_queue()(self.qs.wait_until_hex_finished)
+        
 
 
     def set_password(self, password) -> str:
@@ -150,6 +154,22 @@ class RemoteFunctions:
             return result_properties.result
         else:
             return f"Error: {result_properties.status} - {result_properties.output}"
+
+    def as_remote_no_queue(self):
+        def decorator(func):
+            if func.__name__ not in self.functions:
+                self.add_function(func)
+                self.no_queue_list.append(func.__name__)
+            
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                if self.is_server:
+                    return func(*args, **kwargs)
+                else:
+                    return self.call_remote_function(func.__name__, *args, **kwargs)
+
+            return wrapper
+        return decorator
 
     def as_remote(self):
         def decorator(func):
@@ -317,7 +337,7 @@ class RemoteFunctions:
 
             try:
                 # Execute the function with the provided arguments.
-                if self.is_server and (not self.is_queue or not self.server_started):
+                if (self.is_server and (not self.is_queue or not self.server_started)) or func_name in self.no_queue_list:
                     result = rf.functions[func_name](*args, **kwargs)
                 else:
                     result = self._queue_function_with_wait(rf.functions[func_name], *args, **kwargs)
