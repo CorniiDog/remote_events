@@ -64,25 +64,25 @@ import hashlib
 import pickle
 
 
-def pack_message(SECRET_KEY, data) -> bytes:
+def pack_message(SECRET_KEY: str, data) -> bytes:
     # Serialize the data with a fixed protocol
     payload = pickle.dumps(data, protocol=4)
     # Create an HMAC signature using the secret key
-    signature = hmac.new(SECRET_KEY, payload, hashlib.sha256).hexdigest()
+    signature = hmac.new(SECRET_KEY.encode('utf-8'), payload, hashlib.sha256).hexdigest()
     message = {
         "payload": payload,
         "signature": signature
     }
     return pickle.dumps(message, protocol=4)
 
-def unpack_message(SECRET_KEY, message_bytes: bytes):
+def unpack_message(SECRET_KEY: str, message_bytes: bytes):
     message = pickle.loads(message_bytes)
     if not isinstance(message, dict) or "payload" not in message or "signature" not in message:
         raise ValueError("Invalid message structure: missing payload or signature")
     payload = message["payload"]
     signature = message["signature"]
     # Recompute the signature for the received payload
-    computed_signature = hmac.new(SECRET_KEY, payload, hashlib.sha256).hexdigest()
+    computed_signature = hmac.new(SECRET_KEY.encode('utf-8'), payload, hashlib.sha256).hexdigest()
     if not hmac.compare_digest(signature, computed_signature):
         raise ValueError("Signature verification failed")
     # Return the original data by unpickling the payload
