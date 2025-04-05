@@ -172,9 +172,6 @@ class RemoteFunctions:
         def decorator(func):
             if func.__name__ not in self.functions:
                 self.add_function(func)
-
-            if self.is_server and self.is_queue: # Just return func to prevent pkl load and unload issues
-                return func
             
             @functools.wraps(func)
             def wrapper(*args, **kwargs):

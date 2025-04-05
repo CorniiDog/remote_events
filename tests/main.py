@@ -22,7 +22,8 @@ import sys
 from typing import Any
 
 # Initialize RemoteFunctions with password authentication.
-rf = RemoteFunctions(password="Whoop!-")
+# set is_queue=True for a queue-based call system, to act similarly as a mutex
+rf = RemoteFunctions(password="Whoop!-", is_queue=False) 
 
 @rf.as_remote()
 def a(b: Any) -> Any:
