@@ -18,8 +18,8 @@ Note: Ensure the server is running before starting the client.
 """
 
 from remote_functions import RemoteFunctions
-import sys
 from typing import Any
+import sys
 
 # Initialize RemoteFunctions with password authentication.
 # set is_queue=True for a queue-based call system, to act similarly as a mutex
@@ -37,11 +37,11 @@ def add(x: float, y: float) -> float:
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "server":
-        # Start the server (blocking call) on 0.0.0.0:5000.
+        # Start the server (blocking call) on 0.0.0.0:5001.
         rf.start_server(host="0.0.0.0", port=5001)
 
     elif len(sys.argv) > 1 and sys.argv[1] == "client":
-        # Connect to the server running on localhost:5000.
+        # Connect to the server running on localhost:5001.
         rf.connect_to_server("localhost", 5001)
 
         print("Invoking function 'a' with argument 'Hello World!'")
