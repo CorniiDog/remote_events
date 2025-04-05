@@ -55,7 +55,7 @@ tampering, ensuring secure and reliable remote function execution.
 import pickle
 from flask import Flask, request, Response
 import requests
-from typing import List, Callable, Any
+from typing import List, Callable, Any, Union
 import hashlib
 import inspect
 import functools
@@ -427,7 +427,7 @@ class RemoteFunctions:
         else:
             raise Exception(f"Error retrieving functions: {response.status_code}, {response.text}")
 
-    def call_remote_function(self, func_name: str | Callable, *args, **kwargs):
+    def call_remote_function(self, func_name: Union[str, Callable], *args, **kwargs):
         """
         Call a remote function on the server and return its unpickled result.
 
