@@ -59,64 +59,34 @@ import inspect
 import functools
 from process_managerial import QueueSystemLite
 from process_managerial import QueueStatus
+import hmac
+import hashlib
+import pickle
 
-def _generate_hash_from_data(data: Any) -> str:
-    """
-    Generate a SHA-256 hash from pickled data.
 
-    Parameters:
-        data (Any): Data to hash.
-    
-    Returns:
-        str: The hexadecimal SHA-256 hash of the pickled data.
-    """
-    pickled_data = pickle.dumps(data, protocol=4)
-    return hashlib.sha256(pickled_data).hexdigest()
-
-def pack_message(data) -> bytes:
-    """
-    Package a payload with its hash.
-
-    The message is a dictionary containing:
-      - 'payload': the actual data.
-      - 'hash': the SHA-256 hash computed from the pickled payload.
-
-    Parameters:
-        data (Any): The data to be packaged.
-
-    Returns:
-        bytes: The pickled message.
-    """
+def pack_message(SECRET_KEY, data) -> bytes:
+    # Serialize the data with a fixed protocol
+    payload = pickle.dumps(data, protocol=4)
+    # Create an HMAC signature using the secret key
+    signature = hmac.new(SECRET_KEY, payload, hashlib.sha256).hexdigest()
     message = {
-        "payload": data,
-        "hash": _generate_hash_from_data(data)
+        "payload": payload,
+        "signature": signature
     }
-    return pickle.dumps(message)
+    return pickle.dumps(message, protocol=4)
 
-def unpack_message(message_bytes: bytes):
-    """
-    Unpack a message and verify its hash.
-
-    Parameters:
-        message_bytes (bytes): The pickled message to be unpacked.
-
-    Returns:
-        Any: The payload if the hash is verified.
-
-    Raises:
-        ValueError: If the message structure is invalid or the hash does not match.
-    """
-    try:
-        message = pickle.loads(message_bytes)
-        if not isinstance(message, dict) or "payload" not in message or "hash" not in message:
-            raise ValueError("Invalid message structure: missing payload or hash")
-        payload = message["payload"]
-        received_hash = message["hash"]
-        if _generate_hash_from_data(payload) != received_hash:
-            raise ValueError("Hash verification failed")
-        return payload
-    except Exception as e:
-        raise ValueError(f"Invalid message: {str(e)}")
+def unpack_message(SECRET_KEY, message_bytes: bytes):
+    message = pickle.loads(message_bytes)
+    if not isinstance(message, dict) or "payload" not in message or "signature" not in message:
+        raise ValueError("Invalid message structure: missing payload or signature")
+    payload = message["payload"]
+    signature = message["signature"]
+    # Recompute the signature for the received payload
+    computed_signature = hmac.new(SECRET_KEY, payload, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(signature, computed_signature):
+        raise ValueError("Signature verification failed")
+    # Return the original data by unpickling the payload
+    return pickle.loads(payload)
 
 class RemoteFunctions:
     """
@@ -158,7 +128,9 @@ class RemoteFunctions:
         self.qs = QueueSystemLite()
 
     def set_password(self, password) -> str:
-        self._password_hash = hashlib.sha256(password.encode()).hexdigest() if password else None
+        if password == None:
+            password = "password"
+        self._password_hash = hashlib.sha256(password.encode()).hexdigest()
         return self._password_hash
 
 
@@ -261,10 +233,10 @@ class RemoteFunctions:
                 try:
                     rf._validate_request(provided)
                 except Exception as e:
-                    error_resp = pack_message({"error": str(e)})
+                    error_resp = pack_message(self._password_hash, {"error": str(e)})
                     return Response(error_resp, status=401, mimetype='application/octet-stream')
             # Return a simple "pong" response to indicate server availability.
-            return Response(pack_message("pong"), mimetype='application/octet-stream')
+            return Response(pack_message(self._password_hash, "pong"), mimetype='application/octet-stream')
 
         @self.app.route("/functions", methods=["GET"])
         def list_functions():
@@ -274,7 +246,7 @@ class RemoteFunctions:
                 try:
                     rf._validate_request(provided)
                 except Exception as e:
-                    error_resp = pack_message({"error": str(e)})
+                    error_resp = pack_message(self._password_hash, {"error": str(e)})
                     return Response(error_resp, status=401, mimetype='application/octet-stream')
             try:
                 # Build a list of registered functions with their names and parameter details.
@@ -293,10 +265,10 @@ class RemoteFunctions:
                     function_list.append(func_data)
 
                 payload = function_list
-                response_message = pack_message(payload)
+                response_message = pack_message(self._password_hash, payload)
                 return Response(response_message, mimetype='application/octet-stream')
             except Exception as e:
-                error_resp = pack_message({"error": "Server error: " + str(e)})
+                error_resp = pack_message(self._password_hash, {"error": "Server error: " + str(e)})
                 return Response(error_resp, status=500, mimetype='application/octet-stream')
 
         @self.app.route("/call", methods=["POST"])
@@ -312,9 +284,9 @@ class RemoteFunctions:
             """
             # Unpack and verify the incoming message.
             try:
-                data = unpack_message(request.data)
+                data = unpack_message(self._password_hash, request.data)
             except Exception as e:
-                error_resp = pack_message({"error": "Server error: " + str(e)})
+                error_resp = pack_message(self._password_hash, {"error": "Server error: " + str(e)})
                 return Response(error_resp, status=400, mimetype='application/octet-stream')
             
             # Validate the password if required.
@@ -323,7 +295,7 @@ class RemoteFunctions:
                 try:
                     rf._validate_request(provided)
                 except Exception as e:
-                    error_resp = pack_message({"error": str(e)})
+                    error_resp = pack_message(self._password_hash, {"error": str(e)})
                     return Response(error_resp, status=401, mimetype='application/octet-stream')
                 # Remove the password from the payload to prevent interference with function parameters.
                 data.pop("password", None)
@@ -334,7 +306,7 @@ class RemoteFunctions:
 
             # Check if the function exists in the registry.
             if func_name not in rf.functions:
-                error_resp = pack_message({"error": f"Function '{func_name}' not found"})
+                error_resp = pack_message(self._password_hash, {"error": f"Function '{func_name}' not found"})
                 return Response(error_resp, status=404, mimetype='application/octet-stream')
 
             try:
@@ -344,10 +316,10 @@ class RemoteFunctions:
                 else:
                     result = self._queue_function_with_wait(rf.functions[func_name], *args, **kwargs)
             except Exception as e:
-                error_resp = pack_message({"error": "Server error: " + str(e)})
+                error_resp = pack_message(self._password_hash, {"error": "Server error: " + str(e)})
                 return Response(error_resp, status=500, mimetype='application/octet-stream')
 
-            response_message = pack_message(result)
+            response_message = pack_message(self._password_hash, result)
             return Response(response_message, mimetype='application/octet-stream')
 
         print(f"Starting server at http://{host}:{port} ...")
@@ -393,7 +365,7 @@ class RemoteFunctions:
         try:
             response = requests.get(f"{self.server_url}/ping", params=params, timeout=timeout_seconds)
             if response.status_code == 200:
-                payload = unpack_message(response.content)
+                payload = unpack_message(self._password_hash, response.content)
                 if payload == "pong":
                     return True
                 else:
@@ -426,7 +398,7 @@ class RemoteFunctions:
         response = requests.get(f"{self.server_url}/functions", params=params)
         if response.status_code == 200:
             try:
-                return unpack_message(response.content)
+                return unpack_message(self._password_hash, response.content)
             except Exception as e:
                 raise Exception("Client error: " + str(e))
         else:
@@ -472,12 +444,12 @@ class RemoteFunctions:
         # Include the hashed password if set.
         if self._password_hash:
             payload["password"] = self._password_hash
-        packaged_payload = pack_message(payload)
+        packaged_payload = pack_message(self._password_hash, self._password_hash, payload)
         headers = {'Content-Type': 'application/octet-stream'}
         response = requests.post(f"{self.server_url}/call", data=packaged_payload, headers=headers)
         if response.status_code == 200:
             try:
-                return unpack_message(response.content)
+                return unpack_message(self._password_hash, response.content)
             except Exception as e:
                 raise Exception("Client error: " + str(e))
         else:
