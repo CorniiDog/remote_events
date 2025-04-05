@@ -57,7 +57,7 @@ from typing import List, Callable, Any, Union
 import hashlib
 import inspect
 import functools
-from process_managerial import QueueSystem
+from process_managerial import QueueSystemLite
 from process_managerial import QueueStatus
 
 def _generate_hash_from_data(data: Any) -> str:
@@ -133,7 +133,7 @@ class RemoteFunctions:
       - The server validates the provided hashed password against its stored hash.
     """
 
-    def __init__(self, password: str = None, is_queue:bool = False, queue_cache_clear_days: int = 2):
+    def __init__(self, password: str = None, is_queue:bool = False):
         """
         Initialize a RemoteFunctions instance.
 
@@ -155,8 +155,7 @@ class RemoteFunctions:
         self.server_started = False
 
         self.is_queue = is_queue
-        
-        self.qs = QueueSystem(clear_hexes_after_days=queue_cache_clear_days)
+        self.qs = QueueSystemLite()
 
     def _queue_function_with_wait(self, func, *args, **kwargs):
         queue_hex = self.qs.queue_function(func, *args, **kwargs)
