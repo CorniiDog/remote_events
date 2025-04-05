@@ -149,13 +149,18 @@ class RemoteFunctions:
         self.functions = {}
         self.server_url = None
         self.app = None
-        self._password_hash = hashlib.sha256(password.encode()).hexdigest() if password else None
         self.is_server = True
         self.is_client = False
         self.server_started = False
+        self._password_hash = self.set_password(password=password)
 
         self.is_queue = is_queue
         self.qs = QueueSystemLite()
+
+    def set_password(self, password) -> str:
+        self._password_hash = hashlib.sha256(password.encode()).hexdigest() if password else None
+        return self._password_hash
+
 
     def _queue_function_with_wait(self, func, *args, **kwargs):
         queue_hex = self.qs.queue_function(func, *args, **kwargs)
