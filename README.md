@@ -31,8 +31,6 @@ Note: Ensure the server is running before starting the client.
 """
 
 from remote_functions import RemoteFunctions
-import sys
-from typing import Any
 
 # Initialize RemoteFunctions with password authentication.
 # set is_queue=True for a queue-based call system, to act similarly as a mutex
@@ -81,16 +79,12 @@ In two terminals:
 The purpose is for you to create your own script, like my_functions.py
 and replicate the python script to the server and client. 
 
-For example:
-
 ### `my_functions.py`
 
 ```py
 from remote_functions import RemoteFunctions
-import sys
-from typing import Any
 
-# Initialize RemoteFunctions with password authentication.
+# Initialize RemoteFunctions
 # set is_queue=True for a queue-based call system, to act similarly as a mutex
 rf = RemoteFunctions(is_queue=False) 
 
