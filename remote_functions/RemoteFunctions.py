@@ -350,18 +350,18 @@ class RemoteFunctions:
         else:
             raise Exception(f"Error retrieving functions: {response.status_code}, {response.text}")
 
-    def call_remote_function(self, func_name, *args, **kwargs):
+    def call_remote_function(self, func_name: str | Callable, *args, **kwargs):
         """
         Call a remote function on the server and return its unpickled result.
 
         Sends a POST request to the remote server's /call endpoint with a pickled payload specifying:
-            - function (str): The name of the remote function to call.
+            - func_name (str): The name of the remote function to call.
             - args (list): Positional arguments for the function.
             - kwargs (dict): Keyword arguments for the function.
             - password (str, optional): Hashed password for authentication.
 
         Parameters:
-            func_name (str): The name of the remote function to call.
+            func_name (str | Callable): The name of the remote function to call, or the function itself
             *args: Positional arguments for the function.
             **kwargs: Keyword arguments for the function.
 
@@ -374,8 +374,14 @@ class RemoteFunctions:
         """
         if not self.server_url:
             raise ValueError("Server URL not set. Use connect_to_server() first.")
+            
         # Verify connectivity with a ping.
         self.ping()
+
+        if callable(func_name):
+            func_name: Callable = func_name
+            func_name = func_name.__name__
+
         payload = {
             "function": func_name,
             "args": args,
