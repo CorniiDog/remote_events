@@ -52,7 +52,7 @@ tampering, ensuring secure and reliable remote function execution.
 """
 
 
-import pickle
+import dill as pickle
 from flask import Flask, request, Response
 import requests
 from typing import List, Callable, Any, Union
