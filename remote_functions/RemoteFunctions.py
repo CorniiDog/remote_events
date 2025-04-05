@@ -132,9 +132,11 @@ class RemoteFunctions:
         self.qs.get_hexes = self.as_remote_no_queue()(self.qs.get_hexes)
         self.qs.clear_hexes = self.as_remote_no_queue()(self.qs.clear_hexes)
         self.qs.get_properties = self.as_remote_no_queue()(self.qs.get_properties)
+        self.qs.get_all_hex_properties = self.as_remote_no_queue()(self.qs.get_all_hex_properties)
         self.qs.cancel_queue = self.as_remote_no_queue()(self.qs.cancel_queue)
         self.qs.wait_until_finished = self.as_remote_no_queue()(self.qs.wait_until_finished)
         self.qs.wait_until_hex_finished = self.as_remote_no_queue()(self.qs.wait_until_hex_finished)
+        self.qs.requeue_hex = self.as_remote_no_queue()(self.qs.requeue_hex)
         
 
 
