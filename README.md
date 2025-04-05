@@ -2,6 +2,9 @@
 
 Connor's Remote Events (RE) is a simple library that allows the end-user to call python functions from another server. This is highly powerful if you are coding an application that offloads processes to another server.
 
+If you want to offload automation tasks to another device, this is the package to use. It is extremely reliable
+and robust for near-effort python automation
+
 ## Example main.py
 
 In two terminals:
