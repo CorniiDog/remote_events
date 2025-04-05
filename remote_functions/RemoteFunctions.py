@@ -444,7 +444,7 @@ class RemoteFunctions:
         # Include the hashed password if set.
         if self._password_hash:
             payload["password"] = self._password_hash
-        packaged_payload = pack_message(self._password_hash, self._password_hash, payload)
+        packaged_payload = pack_message(self._password_hash, payload)
         headers = {'Content-Type': 'application/octet-stream'}
         response = requests.post(f"{self.server_url}/call", data=packaged_payload, headers=headers)
         if response.status_code == 200:
