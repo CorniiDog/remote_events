@@ -109,8 +109,9 @@ You will run this on the server-side:
 ```py
 import my_functions
 
-my_functions.rf.set_password("Whoop!-")
-my_functions.start_server(host="0.0.0.0", port=5001)
+if __name__ == "__main__":
+    my_functions.rf.set_password("Whoop!-")
+    my_functions.start_server(host="0.0.0.0", port=5001)
 ```
 
 ### `client.py`
@@ -119,16 +120,17 @@ You will run this on your local device:
 ```py
 import my_functions
 
-my_functions.rf.set_password("Whoop!-")
-my_functions.connect_to_server("localhost", 5001)
+if __name__ == "__main__":
+    my_functions.rf.set_password("Whoop!-")
+    my_functions.connect_to_server("localhost", 5001)
 
-print("Invoking function 'a' with argument 'Hello World!'")
-result = my_functions.a("Hello World!")
-print("Result:", result)
+    print("Invoking function 'a' with argument 'Hello World!'")
+    result = my_functions.a("Hello World!")
+    print("Result:", result)
 
-print("Invoking function 'add' with arguments 1 and 3")
-result = my_functions.add(1, 3)
-print("Result:", result)
+    print("Invoking function 'add' with arguments 1 and 3")
+    result = my_functions.add(1, 3)
+    print("Result:", result)
 
 ```
 
