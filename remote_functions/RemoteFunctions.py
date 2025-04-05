@@ -135,7 +135,7 @@ class RemoteFunctions:
       - The server validates the provided hashed password against its stored hash.
     """
 
-    def __init__(self, password: str = None, is_queue:bool = False, cache_clear_days: int = 2):
+    def __init__(self, password: str = None, is_queue:bool = False, queue_cache_clear_days: int = 2):
         """
         Initialize a RemoteFunctions instance.
 
@@ -154,10 +154,11 @@ class RemoteFunctions:
         self._password_hash = hashlib.sha256(password.encode()).hexdigest() if password else None
         self.is_server = True
         self.is_client = False
+        self.server_started = False
 
         self.is_queue = is_queue
-        if is_queue:
-            self.qs = QueueSystem(clear_hexes_after_days=cache_clear_days)
+        
+        self.qs = QueueSystem(clear_hexes_after_days=queue_cache_clear_days)
 
     def _queue_function_with_wait(self, func, *args, **kwargs):
         queue_hex = self.qs.queue_function(func, *args, **kwargs)
@@ -176,7 +177,7 @@ class RemoteFunctions:
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
                 if self.is_server:
-                    if not self.is_queue:                        
+                    if not self.is_queue or not self.server_started:                        
                         return func(*args, **kwargs)
                     else:
                         return self._queue_function_with_wait(func, *args, **kwargs)
@@ -245,6 +246,7 @@ class RemoteFunctions:
 
         self.is_server = True
         self.is_client = False
+        self.server_started = True
 
         @self.app.route("/ping", methods=["GET"])
         def ping_route():
@@ -332,7 +334,7 @@ class RemoteFunctions:
 
             try:
                 # Execute the function with the provided arguments.
-                if not self.is_queue:
+                if not self.is_queue or not self.server_started:
                     result = rf.functions[func_name](*args, **kwargs)
                 else:
                     result = self._queue_function_with_wait(rf.functions[func_name], *args, **kwargs)
@@ -344,7 +346,11 @@ class RemoteFunctions:
             return Response(response_message, mimetype='application/octet-stream')
 
         print(f"Starting server at http://{host}:{port} ...")
+        if self.is_queue:
+            self.qs.start_queuesystem() # Starts queue system in separate thread
+
         self.app.run(host=host, port=port, threaded=True)
+        self.server_started = False # After if not working
         return True
 
     def connect_to_server(self, address, port) -> bool:
