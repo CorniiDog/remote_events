@@ -127,6 +127,12 @@ class RemoteFunctions:
         self.is_queue = is_queue
         self.qs = QueueSystemLite()
 
+        # Add functions from it
+        for name, method in inspect.getmembers(self.qs, predicate=inspect.ismethod):
+            if not name.startswith('__'):
+                setattr(self.qs, name, self.as_remote()(method))
+
+
     def set_password(self, password) -> str:
         if password == None:
             password = "password"
