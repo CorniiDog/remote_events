@@ -1,37 +1,3 @@
-Metadata-Version: 2.4
-Name: remote_events
-Version: 0.2.11
-Summary: Connor's Remote Events (RE) is a simple library that allows the end-user to call python functions from another server.
-Author-email: Connor White <connor.sw.personal@gmail.com>
-License-Expression: MIT
-Project-URL: Homepage, https://github.com/CorniiDog/remote_events
-Project-URL: Issues, https://github.com/CorniiDog/remote_events/issues
-Classifier: Programming Language :: Python :: 3
-Classifier: Operating System :: OS Independent
-Requires-Python: >=3.9
-Description-Content-Type: text/markdown
-License-File: LICENSE
-Requires-Dist: flask
-Requires-Dist: requests
-Requires-Dist: process-managerial
-Requires-Dist: dill
-Dynamic: license-file
-
-# Connor's Remote Events (RE)
-
-Connor's Remote Events (RE) is a simple library that allows the end-user to call python functions from another server. This is highly powerful if you are coding an application that offloads processes to another server.
-
-If you want to offload automation tasks to another device, this is the package to use. It is extremely reliable
-and robust for near-effort python automation
-
-## Example main.py
-
-In two terminals:
-1. First terminal, run the server with `python main.py server`
-
-2. Second terminal, run the client with `python main.py client`
-
-```py
 """
 Main Example Script for RemoteFunctions
 
@@ -86,7 +52,3 @@ if __name__ == "__main__":
         print("Result:", result)
     else:
         print("Usage: python main.py [server|client]")
-
-
-```
-

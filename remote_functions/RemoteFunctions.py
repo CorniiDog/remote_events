@@ -60,7 +60,6 @@ import hashlib
 import inspect
 import functools
 from process_managerial import QueueSystem
-from process_managerial import QueueStatus
 
 def _generate_hash_from_data(data: Any) -> str:
     """
@@ -173,9 +172,7 @@ class RemoteFunctions:
 
     def as_remote(self):
         def decorator(func):
-            if func.__name__ not in self.functions:
-                self.add_function(func)
-
+            
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
                 if self.is_server:
@@ -185,6 +182,10 @@ class RemoteFunctions:
                         return self._queue_function_with_wait(func, *args, **kwargs)
                 else:
                     return self.call_remote_function(func.__name__, *args, **kwargs)
+            wrapper.__name__ = func.__name__
+            if func.__name__ not in self.functions:
+                self.add_function(wrapper)
+
             return wrapper
         return decorator
 
