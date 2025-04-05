@@ -164,6 +164,8 @@ class RemoteFunctions:
         queue_hex = self.qs.queue_function(func, *args, **kwargs)
         self.qs.wait_until_hex_finished(queue_hex)
         result_properties = self.qs.get_properties(queue_hex)
+        if not result_properties:
+            return f"Function lost... ? Unique Hex: {queue_hex}"
         if result_properties.status == QueueStatus.RETURNED_CLEAN:
             return result_properties.result
         else:
@@ -346,7 +348,7 @@ class RemoteFunctions:
             return Response(response_message, mimetype='application/octet-stream')
 
         print(f"Starting server at http://{host}:{port} ...")
-        if self.is_queue:
+        if self.is_queue and not self.qs.is_running:
             self.qs.start_queuesystem() # Starts queue system in separate thread
 
         self.app.run(host=host, port=port, threaded=True)

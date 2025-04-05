@@ -22,7 +22,7 @@ import sys
 from typing import Any
 
 # Initialize RemoteFunctions with password authentication.
-rf = RemoteFunctions(password="Whoop!-")
+rf = RemoteFunctions(password="Whoop!-", is_queue=True)
 
 @rf.as_remote()
 def a(b: Any) -> Any:
@@ -30,18 +30,18 @@ def a(b: Any) -> Any:
     return b
 
 @rf.as_remote()
-def add(x: float | int, y: float | int) -> float | int:
+def add(x: float, y: float) -> float:
     """Return the sum of x and y."""
     return x + y
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "server":
         # Start the server (blocking call) on 0.0.0.0:5000.
-        rf.start_server(host="0.0.0.0", port=5000)
+        rf.start_server(host="0.0.0.0", port=5001)
 
     elif len(sys.argv) > 1 and sys.argv[1] == "client":
         # Connect to the server running on localhost:5000.
-        rf.connect_to_server("localhost", 5000)
+        rf.connect_to_server("localhost", 5001)
 
         print("Invoking function 'a' with argument 'Hello World!'")
         result = a("Hello World!")
