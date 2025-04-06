@@ -478,7 +478,11 @@ class RemoteFunctions:
             received_message = subtract_overlap(last_message, new_message)
 
             if len(received_message) > 0:
-                print(received_message)
+                # Split the message into individual lines
+                lines = received_message.splitlines()
+                # Prefix each line with "[Server]: " and join them back together
+                prefixed_message = "\n".join("[Server]: " + line for line in lines)
+                print(prefixed_message)
             
             last_message = new_message
             time.sleep(0.3)
