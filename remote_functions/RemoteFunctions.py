@@ -62,7 +62,41 @@ from process_managerial import QueueStatus
 import hmac
 import hashlib
 import pickle
+import os
+import sys
+import subprocess
+import platform
+import threading
 
+def run_self_with_output_filename(output_name: str = "output.txt", max_lines: int = 200):
+    if os.environ.get("TOOLBOX_REDIRECTED") == "1":
+        return  # Already redirected
+
+    python_path = sys.executable
+    script_path = os.path.abspath(sys.argv[0])
+    args = ' '.join(f'"{arg}"' for arg in sys.argv[1:])  # Proper quoting
+
+    env = os.environ.copy()
+    env["TOOLBOX_REDIRECTED"] = "1"
+    env["TOOLBOX_OUTPUT_NAME"] = output_name
+
+    if platform.system() == "Windows":
+        # PowerShell-compatible: use double quotes for full command
+        redirection_command = f"""
+        & "{python_path}" "{script_path}" {args} | Tee-Object -Append -FilePath "{output_name}";
+        Get-Content "{output_name}" -Tail {max_lines} | Set-Content "temp.txt";
+        Move-Item -Force "temp.txt" "{output_name}"
+        """
+        subprocess.run(["powershell", "-Command", redirection_command], env=env)
+    else:
+        # Unix shell logic
+        redirection_command = (
+            f'"{python_path}" "{script_path}" {args} '
+            f'| tee -a "{output_name}" | tail -n {max_lines} > temp.txt && mv temp.txt "{output_name}"'
+        )
+        subprocess.run(redirection_command, shell=True, env=env)
+
+    sys.exit()
 
 def pack_message(SECRET_KEY: str, data) -> bytes:
     # Serialize the data with a fixed protocol
@@ -122,8 +156,9 @@ class RemoteFunctions:
         self.is_server = True
         self.is_client = False
         self.server_started = False
+        self.client_started = False
         self._password_hash = self.set_password(password=password)
-        self.no_queue_list = []
+        self.no_queue_list = [] # List of functions to run directly
         self.ssl_context = None  # Initialize SSL context attribute
 
 
@@ -139,6 +174,40 @@ class RemoteFunctions:
         self.qs.wait_until_finished = self.as_remote_no_queue()(self.qs.wait_until_finished)
         self.qs.wait_until_hex_finished = self.as_remote_no_queue()(self.qs.wait_until_hex_finished)
         self.qs.requeue_hex = self.as_remote_no_queue()(self.qs.requeue_hex)
+
+        # Add function to get the output of data
+        self.get_output = self.as_remote_no_queue()(self.get_output)
+
+    def get_output(self, omit_incomplete_last_line=True) -> str:
+        """
+        Retrieve the complete output from the file specified by the "TOOLBOX_OUTPUT_NAME" environment variable.
+
+        This function reads the output file created by the redirection mechanism (via run_self_with_output_filename)
+        and returns its content as a single string. If the final line is incomplete (i.e., it does not end with a newline),
+        it is omitted from the result to avoid including partially written data.
+
+        Parameters:
+            omit_incomplete_last_line (bool, optional): Determines whether to exclude the last line if it appears incomplete.
+                Defaults to True.
+
+        Returns:
+            str: The concatenated contents of the output file with complete lines only. Will return empty string if not able to retreive
+        """
+        output_filename = os.environ.get("TOOLBOX_OUTPUT_NAME")
+
+        if not output_filename or not os.path.exists(output_filename):
+            return ""
+        
+        with open(output_filename, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+
+        if omit_incomplete_last_line and lines:
+            last_line = lines[-1]
+            if not last_line.endswith('\n'):
+                # Incomplete or mid-write line, omit it
+                lines = lines[:-1]
+
+        return ''.join(lines)
         
     def set_ssl_context(self, cert_file: str, key_file: str):
         """
@@ -183,6 +252,7 @@ class RemoteFunctions:
 
             return wrapper
         return decorator
+    
 
     def as_remote(self):
         def decorator(func):
@@ -257,6 +327,9 @@ class RemoteFunctions:
         Returns:
             None
         """
+        if self.server_started:
+            return
+        
         self.app = Flask(__name__)
         rf = self  # capture self in the route closures
 
@@ -368,10 +441,24 @@ class RemoteFunctions:
         self.app.run(host=host, port=port, threaded=True, ssl_context=self.ssl_context)
         self.server_started = False # After if not working
         return True
+    
+    def _start_output_listening(self):
+        current_message = ""
+        while self.client_started:
+            new_message = self.get_output()
+
+            # Remove last_message from the beginning of my_message if it's a prefix
+            if new_message.startswith(current_message):
+                current_message = new_message[len(current_message):]
+            else:
+                current_message = new_message
+            
+            if len(current_message) > 0:
+                print(current_message)
 
     def connect_to_server(self, address, port) -> bool:
         """
-        Set the remote server address for client operations.
+        Set the remote server address for client operations and start output listening in a separate thread.
 
         Parameters:
             address (str): The IP address or hostname of the remote server.
@@ -380,14 +467,26 @@ class RemoteFunctions:
         Returns:
             bool: True if the server responds successfully to the ping, otherwise raises an exception.
         """
+        if self.client_started:  # Prevent duplicates
+            return
+
         self.is_server = False
         self.is_client = True
 
-        if self.ssl_context: # If there is SSL key verification, use HTTPS
+        if self.ssl_context:  # If there is SSL key verification, use HTTPS
             self.server_url = f"https://{address}:{port}"
-        else: # Otherwise, use HTTP
+        else:  # Otherwise, use HTTP
             self.server_url = f"http://{address}:{port}"
-        return self.ping()
+
+        ping_result = self.ping()
+
+        if ping_result:
+            self.client_started = True
+            # Start _start_output_listening in a separate daemon thread
+            threading.Thread(target=self._start_output_listening, daemon=True).start()
+
+        return ping_result
+            
 
     def ping(self, timeout_seconds: float = 5.0):
         """
