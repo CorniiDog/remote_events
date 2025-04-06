@@ -6,5 +6,6 @@ remote_events.egg-info/SOURCES.txt
 remote_events.egg-info/dependency_links.txt
 remote_events.egg-info/requires.txt
 remote_events.egg-info/top_level.txt
+remote_functions/LimitedBuffer.py
 remote_functions/RemoteFunctions.py
 remote_functions/__init__.py
