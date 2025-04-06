@@ -5,7 +5,6 @@ continuously written to a specified file, ensuring controlled output size.
 """
 
 import io
-import sys
 
 class LimitedBuffer(io.TextIOBase):
     """
@@ -22,7 +21,7 @@ class LimitedBuffer(io.TextIOBase):
         Initialize a new LimitedBuffer instance.
 
         Parameters:
-            target (io.TextIOBase): The underlying stream (e.g., sys.stdout) that receives the original output.
+            target (io.TextIOBase): The underlying stream (e.g., sys.__stdout__) that receives the original output.
             output_file (str): The file path where the buffered output will be written.
             max_lines (int, optional): The maximum number of lines to retain in the buffer. Defaults to 200.
         """

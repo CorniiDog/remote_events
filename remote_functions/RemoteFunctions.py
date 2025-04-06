@@ -97,7 +97,7 @@ def redirect_output_to_file(output_name: str = "output.txt", max_lines: int = 20
     """
     os.environ["TOOLBOX_OUTPUT_NAME"] = output_name # Set environment variable for output name
     # Redirect to a new limited buffer
-    sys.stdout = LimitedBuffer(target=sys.stdout, output_file=output_name, max_lines=max_lines)
+    sys.stdout = LimitedBuffer(target=sys.__stdout__, output_file=output_name, max_lines=max_lines)
     
 
 def pack_message(SECRET_KEY: str, data) -> bytes:
