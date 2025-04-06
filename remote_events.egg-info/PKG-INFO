@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: remote_events
-Version: 0.2.54
+Version: 0.2.55
 Summary: Connor's Remote Events (RE) is a simple library that allows the end-user to call python functions from another server.
 Author-email: Connor White <connor.sw.personal@gmail.com>
 License-Expression: MIT
@@ -50,6 +50,7 @@ Note: Ensure the server is running before starting the client.
 """
 
 from remote_functions import RemoteFunctions
+from remote_functions import run_self_with_output_filename
 from typing import Any
 import sys
 
@@ -69,6 +70,7 @@ def add(x: float, y: float) -> float:
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "server":
+
         # Start the server (blocking call) on 0.0.0.0:5001.
         rf.start_server(host="0.0.0.0", port=5001)
 
@@ -85,8 +87,6 @@ if __name__ == "__main__":
         print("Result:", result)
     else:
         print("Usage: python main.py [server|client]")
-
-
 ```
 
 In two terminals:

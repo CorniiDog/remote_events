@@ -18,6 +18,7 @@ Note: Ensure the server is running before starting the client.
 """
 
 from remote_functions import RemoteFunctions
+from remote_functions import run_self_with_output_filename
 from typing import Any
 import sys
 
@@ -37,6 +38,13 @@ def add(x: float, y: float) -> float:
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "server":
+
+        # (Optional function that does not need to be added)
+        # This makes it such that outputs are sent to output.txt for streaming output (print) data to the client
+        # Note that this must be called at the top of the main function, or it will cause issues
+        # It essentially recalls itself (main.py) with bindings to output.txt, and then exits
+        run_self_with_output_filename()
+
         # Start the server (blocking call) on 0.0.0.0:5001.
         rf.start_server(host="0.0.0.0", port=5001)
 

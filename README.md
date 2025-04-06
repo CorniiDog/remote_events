@@ -31,6 +31,7 @@ Note: Ensure the server is running before starting the client.
 """
 
 from remote_functions import RemoteFunctions
+from remote_functions import run_self_with_output_filename
 from typing import Any
 import sys
 
@@ -50,6 +51,7 @@ def add(x: float, y: float) -> float:
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "server":
+
         # Start the server (blocking call) on 0.0.0.0:5001.
         rf.start_server(host="0.0.0.0", port=5001)
 
@@ -66,8 +68,6 @@ if __name__ == "__main__":
         print("Result:", result)
     else:
         print("Usage: python main.py [server|client]")
-
-
 ```
 
 In two terminals:
