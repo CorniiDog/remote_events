@@ -67,6 +67,26 @@ import sys
 import subprocess
 import platform
 import threading
+import time
+
+def subtract_overlap(a: str, b: str) -> str:
+    """
+    Returns the part of string b that remains after removing the longest suffix of a 
+    that matches a prefix of b.
+    
+    Parameters:
+        a (str): The first string.
+        b (str): The second string.
+    
+    Returns:
+        str: The non-overlapping part of b.
+    """
+    max_overlap = 0
+    # Check for all possible overlap lengths from 1 to the minimum of the lengths of a and b.
+    for i in range(1, min(len(a), len(b)) + 1):
+        if a[-i:] == b[:i]:
+            max_overlap = i
+    return b[max_overlap:]
 
 def run_self_with_output_filename(output_name: str = "output.txt", max_lines: int = 200):
     if os.environ.get("TOOLBOX_REDIRECTED") == "1":
@@ -176,9 +196,10 @@ class RemoteFunctions:
         self.qs.requeue_hex = self.as_remote_no_queue()(self.qs.requeue_hex)
 
         # Add function to get the output of data
-        self.get_output = self.as_remote_no_queue()(self.get_output)
+        self._get_output = self.as_remote_no_queue()(self._get_output)
+        self.supports_output_streaming = self.as_remote_no_queue()(self.supports_output_streaming)
 
-    def get_output(self, omit_incomplete_last_line=True) -> str:
+    def _get_output(self, omit_incomplete_last_line=True) -> str:
         """
         Retrieve the complete output from the file specified by the "TOOLBOX_OUTPUT_NAME" environment variable.
 
@@ -442,19 +463,25 @@ class RemoteFunctions:
         self.server_started = False # After if not working
         return True
     
-    def _start_output_listening(self):
-        current_message = ""
-        while self.client_started:
-            new_message = self.get_output()
+    def supports_output_streaming(self) -> bool:
+        output_filename = os.environ.get("TOOLBOX_OUTPUT_NAME")
 
-            # Remove last_message from the beginning of my_message if it's a prefix
-            if new_message.startswith(current_message):
-                current_message = new_message[len(current_message):]
-            else:
-                current_message = new_message
+        if output_filename:
+            return True
+        return False
+    
+    def _start_output_listening(self):
+        last_message = ""
+        while self.client_started:
+            new_message = self._get_output()
+
+            received_message = subtract_overlap(last_message, new_message)
+
+            if len(received_message) > 0:
+                print(received_message)
             
-            if len(current_message) > 0:
-                print(current_message)
+            last_message = new_message
+            time.sleep(0.3)
 
     def connect_to_server(self, address, port) -> bool:
         """
@@ -482,8 +509,10 @@ class RemoteFunctions:
 
         if ping_result:
             self.client_started = True
-            # Start _start_output_listening in a separate daemon thread
-            threading.Thread(target=self._start_output_listening, daemon=True).start()
+
+            if self.supports_output_streaming(): # If it supports output streaming, we start a listening system
+                # Start _start_output_listening in a separate daemon thread
+                threading.Thread(target=self._start_output_listening, daemon=True).start()
 
         return ping_result
             
