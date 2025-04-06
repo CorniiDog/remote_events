@@ -194,6 +194,7 @@ class RemoteFunctions:
         self.qs.wait_until_finished = self.as_remote_no_queue()(self.qs.wait_until_finished)
         self.qs.wait_until_hex_finished = self.as_remote_no_queue()(self.qs.wait_until_hex_finished)
         self.qs.requeue_hex = self.as_remote_no_queue()(self.qs.requeue_hex)
+        self.qs.clear_hex = self.as_remote_no_queue()(self.qs.clear_hex)
 
         # Add function to get the output of data
         self._get_output = self.as_remote_no_queue()(self._get_output)
@@ -251,6 +252,13 @@ class RemoteFunctions:
         queue_hex = self.qs.queue_function(func, *args, **kwargs)
         self.qs.wait_until_hex_finished(queue_hex)
         result_properties = self.qs.get_properties(queue_hex)
+
+        # Clear the unique hex
+        try:
+            self.qs.clear_hex(queue_hex)
+        except:
+            pass
+
         if not result_properties:
             return f"Function lost... ? Unique Hex: {queue_hex}"
         if result_properties.status == QueueStatus.RETURNED_CLEAN:
