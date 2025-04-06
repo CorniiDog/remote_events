@@ -382,7 +382,11 @@ class RemoteFunctions:
         """
         self.is_server = False
         self.is_client = True
-        self.server_url = f"http://{address}:{port}"
+
+        if self.ssl_context: # If there is SSL key verification, use HTTPS
+            self.server_url = f"https://{address}:{port}"
+        else: # Otherwise, use HTTP
+            self.server_url = f"http://{address}:{port}"
         return self.ping()
 
     def ping(self, timeout_seconds: float = 5.0):
