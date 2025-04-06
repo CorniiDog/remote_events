@@ -7,11 +7,9 @@ refer to the RemoteFunctions.py module.
 """
 
 from .RemoteFunctions import RemoteFunctions
-from .RemoteFunctions import redirect_output_to_file
-from .LimitedBuffer import LimitedBuffer
+from .RemoteFunctions import run_self_with_output_filename
 
 __all__ = [
   "RemoteFunctions",
-  "redirect_output_to_file",
-  "LimitedBuffer"
+  "run_self_with_output_filename",
 ]

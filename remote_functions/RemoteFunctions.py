@@ -69,8 +69,6 @@ import platform
 import threading
 import time
 
-from .LimitedBuffer import LimitedBuffer
-
 def subtract_overlap(a: str, b: str) -> str:
     """
     Returns the part of string b that remains after removing the longest suffix of a 
@@ -90,15 +88,35 @@ def subtract_overlap(a: str, b: str) -> str:
             max_overlap = i
     return b[max_overlap:]
 
-def redirect_output_to_file(output_name: str = "output.txt", max_lines: int = 200):
-    """
-    This function redirects the system stdout to a file. This should be ran on server-side as the first thing 
-    on main to allow a more cohesive infastructure of sending print statements to the client to print.
-    """
-    os.environ["TOOLBOX_OUTPUT_NAME"] = output_name # Set environment variable for output name
-    # Redirect to a new limited buffer
-    sys.stdout = LimitedBuffer(target=sys.__stdout__, output_file=output_name, max_lines=max_lines)
-    
+def run_self_with_output_filename(output_name: str = "output.txt", max_lines: int = 200):
+    if os.environ.get("TOOLBOX_REDIRECTED") == "1":
+        return  # Already redirected
+
+    python_path = sys.executable
+    script_path = os.path.abspath(sys.argv[0])
+    args = ' '.join(f'"{arg}"' for arg in sys.argv[1:])  # Proper quoting
+
+    env = os.environ.copy()
+    env["TOOLBOX_REDIRECTED"] = "1"
+    env["TOOLBOX_OUTPUT_NAME"] = output_name
+
+    if platform.system() == "Windows":
+        # PowerShell-compatible: use double quotes for full command
+        redirection_command = f"""
+        & "{python_path}" "{script_path}" {args} | Tee-Object -Append -FilePath "{output_name}";
+        Get-Content "{output_name}" -Tail {max_lines} | Set-Content "temp.txt";
+        Move-Item -Force "temp.txt" "{output_name}"
+        """
+        subprocess.run(["powershell", "-Command", redirection_command], env=env)
+    else:
+        # Unix shell logic
+        redirection_command = (
+            f'"{python_path}" "{script_path}" {args} '
+            f'| tee -a "{output_name}" | tail -n {max_lines} > temp.txt && mv temp.txt "{output_name}"'
+        )
+        subprocess.run(redirection_command, shell=True, env=env)
+
+    sys.exit()
 
 def pack_message(SECRET_KEY: str, data) -> bytes:
     # Serialize the data with a fixed protocol
