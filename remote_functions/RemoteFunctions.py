@@ -472,6 +472,12 @@ class RemoteFunctions:
         return True
     
     def supports_output_streaming(self) -> bool:
+        """
+        Returns true if the system supports output streaming.
+
+        Returns:
+            bool: True if the system supports output (i.e. printing) streaming
+        """
         output_filename = os.environ.get("TOOLBOX_OUTPUT_NAME")
 
         if output_filename:
