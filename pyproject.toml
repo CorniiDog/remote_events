@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "remote_events"
-version = "0.2.57"
+version = "0.2.58"
 authors = [
   { name="Connor White", email="connor.sw.personal@gmail.com" },
 ]

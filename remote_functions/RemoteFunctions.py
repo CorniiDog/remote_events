@@ -91,6 +91,10 @@ def subtract_overlap(a: str, b: str) -> str:
     return b[max_overlap:]
 
 def redirect_output_to_file(output_name: str = "output.txt", max_lines: int = 200):
+    """
+    This function redirects the system stdout to a file. This should be ran on server-side as the first thing 
+    on main to allow a more cohesive infastructure of sending print statements to the client to print.
+    """
     os.environ["TOOLBOX_OUTPUT_NAME"] = output_name # Set environment variable for output name
     # Redirect to a new limited buffer
     sys.stdout = LimitedBuffer(target=sys.stdout, output_file=output_name, max_lines=max_lines)
