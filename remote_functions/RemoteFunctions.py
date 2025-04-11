@@ -486,6 +486,8 @@ class RemoteFunctions:
     
     def _start_output_listening(self):
         last_message = ""
+
+        ignored_last_response = False
         while self.client_started:
             new_message = self._get_output()
 
@@ -496,7 +498,10 @@ class RemoteFunctions:
                 lines = received_message.splitlines()
                 # Prefix each line with "[Server]: " and join them back together
                 prefixed_message = "\n".join("[Server]: " + line for line in lines)
-                print(prefixed_message)
+                if not ignored_last_response:
+                    ignored_last_response = True
+                else:
+                    print(prefixed_message)
             
             last_message = new_message
             time.sleep(0.3)
