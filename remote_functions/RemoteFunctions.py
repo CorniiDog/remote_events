@@ -90,10 +90,11 @@ def subtract_overlap(a: str, b: str) -> str:
             max_overlap = i
     return b[max_overlap:]
 
-import os
-import sys
-import subprocess
-import platform
+
+class BadResult:
+    def __init__(self, output):
+        self.output = output
+
 
 def run_self_with_output_filename(output_name: str = "output.txt", max_lines: int = 100):
     if os.environ.get("TOOLBOX_REDIRECTED") == "1":
@@ -281,7 +282,7 @@ class RemoteFunctions:
         if result_properties.status == QueueStatus.RETURNED_CLEAN:
             return result_properties.result
         else:
-            return f"Error: {result_properties.status} - {result_properties.output}"
+            return BadResult(output=f"Error: {result_properties.status} - {result_properties.output}")
 
     def as_remote_no_queue(self):
         def decorator(func):
