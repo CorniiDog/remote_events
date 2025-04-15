@@ -101,17 +101,15 @@ def run_self_with_output_filename(output_name: str = "output.txt", max_lines: in
     env["TOOLBOX_OUTPUT_NAME"] = output_name
 
     if platform.system() == "Windows":
-        # PowerShell-compatible: use double quotes for full command
         redirection_command = f"""
-        & "{python_path}" "{script_path}" {args} | Tee-Object -Append -FilePath "{output_name}";
+        & "{python_path}" "{script_path}" {args} 2>&1 | Tee-Object -Append -FilePath "{output_name}";
         Get-Content "{output_name}" -Tail {max_lines} | Set-Content "temp.txt";
         Move-Item -Force "temp.txt" "{output_name}"
         """
         subprocess.run(["powershell", "-Command", redirection_command], env=env)
     else:
-        # Unix shell logic
         redirection_command = (
-            f'"{python_path}" "{script_path}" {args} '
+            f'"{python_path}" "{script_path}" {args} 2>&1 '
             f'| tee -a "{output_name}" | tail -n {max_lines} > temp.txt && mv temp.txt "{output_name}"'
         )
         subprocess.run(redirection_command, shell=True, env=env)
