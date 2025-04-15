@@ -57,8 +57,7 @@ from typing import List, Callable, Any, Union
 import hashlib
 import inspect
 import functools
-from process_managerial import QueueSystemLite
-from process_managerial import QueueStatus
+from process_managerial import QueueSystemLite, FunctionPropertiesStruct, QueueStatus
 import hmac
 import hashlib
 import pickle
@@ -206,6 +205,12 @@ class RemoteFunctions:
         self.qs.requeue_hex = self.as_remote_no_queue()(self.qs.requeue_hex)
         self.qs.clear_hex = self.as_remote_no_queue()(self.qs.clear_hex)
 
+        self.qs.shelve_hex = self.as_remote_no_queue()(self.qs.shelve_hex)
+        self.qs.get_shelved_hex = self.as_remote_no_queue()(self.qs.get_shelved_hex)
+        self.qs.list_shelved_hexes = self.as_remote_no_queue()(self.qs.list_shelved_hexes)
+        self.qs.delete_shelved_hex = self.as_remote_no_queue()(self.qs.delete_shelved_hex)
+        self.qs.clear_shelved_hexes = self.as_remote_no_queue()(self.qs.clear_shelved_hexes)
+
         # Add function to get the output of data
         self._get_output = self.as_remote_no_queue()(self._get_output)
         self.supports_output_streaming = self.as_remote_no_queue()(self.supports_output_streaming)
@@ -257,9 +262,12 @@ class RemoteFunctions:
         self._password_hash = hashlib.sha256(password.encode()).hexdigest()
         return self._password_hash
 
+    def _queue_function_shelved(self, func, *args, **kwargs):
+        return self._queue_function_with_wait(func, _is_shelved=True, *args, **kwargs)
 
-    def _queue_function_with_wait(self, func, *args, **kwargs):
-        queue_hex = self.qs.queue_function(func, *args, **kwargs)
+
+    def _queue_function_with_wait(self, func, _is_shelved=False, *args, **kwargs):
+        queue_hex = self.qs.queue_function(func, is_shelved=_is_shelved, *args, **kwargs)
         self.qs.wait_until_hex_finished(queue_hex)
         result_properties = self.qs.get_properties(queue_hex)
 
@@ -292,6 +300,35 @@ class RemoteFunctions:
             return wrapper
         return decorator
     
+    def clear_shelved_hexes(self):
+        self.qs.clear_shelved_hexes()
+
+    def get_shelved_hexes(self) -> List[str]:
+        return self.qs.list_shelved_hexes()
+    
+    def get_shelved_hex_properties(self, unique_hex:str) -> FunctionPropertiesStruct | None:
+        return self.qs.get_shelved_hex(unique_hex)
+    
+    def delete_shelved_hex(self, unique_hex:str):
+        self.qs.delete_shelved_hex(unique_hex)
+    
+    def as_remote_shelved(self):
+        def decorator(func):
+            if func.__name__ not in self.functions:
+                self.add_function(func)
+            
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                if self.is_server:
+                    if self.is_server and (not self.is_queue or not self.server_started):                        
+                        return func(*args, **kwargs)
+                    else:
+                        return self._queue_function_shelved(func, *args, **kwargs)
+                else:
+                    return self.call_remote_function(func.__name__, *args, **kwargs)
+
+            return wrapper
+        return decorator
 
     def as_remote(self):
         def decorator(func):
