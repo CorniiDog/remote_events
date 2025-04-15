@@ -68,6 +68,9 @@ import subprocess
 import platform
 import threading
 import time
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.WARNING)
 
 def subtract_overlap(a: str, b: str) -> str:
     """
