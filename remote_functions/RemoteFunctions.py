@@ -261,13 +261,12 @@ class RemoteFunctions:
             password = "password"
         self._password_hash = hashlib.sha256(password.encode()).hexdigest()
         return self._password_hash
-
+    
     def _queue_function_shelved(self, func, *args, **kwargs):
-        return self._queue_function_with_wait(func, _is_shelved=True, *args, **kwargs)
+        self.qs.queue_function_shelved(func, *args, **kwargs)
 
-
-    def _queue_function_with_wait(self, func, _is_shelved=False, *args, **kwargs):
-        queue_hex = self.qs.queue_function(func, is_shelved=_is_shelved, *args, **kwargs)
+    def _queue_function_with_wait(self, func, *args, **kwargs):
+        queue_hex = self.qs.queue_function(func, *args, **kwargs)
         self.qs.wait_until_hex_finished(queue_hex)
         result_properties = self.qs.get_properties(queue_hex)
 
