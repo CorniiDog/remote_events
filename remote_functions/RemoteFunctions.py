@@ -91,7 +91,12 @@ def subtract_overlap(a: str, b: str) -> str:
             max_overlap = i
     return b[max_overlap:]
 
-def run_self_with_output_filename(output_name: str = "output.txt", max_lines: int = 200):
+import os
+import sys
+import subprocess
+import platform
+
+def run_self_with_output_filename(output_name: str = "output.txt", max_lines: int = 100):
     if os.environ.get("TOOLBOX_REDIRECTED") == "1":
         return  # Already redirected
 
@@ -104,20 +109,23 @@ def run_self_with_output_filename(output_name: str = "output.txt", max_lines: in
     env["TOOLBOX_OUTPUT_NAME"] = output_name
 
     if platform.system() == "Windows":
+        # On Windows, do not append; write fresh output.
         redirection_command = f"""
-        & "{python_path}" "{script_path}" {args} 2>&1 | Tee-Object -Append -FilePath "{output_name}";
+        & "{python_path}" "{script_path}" {args} 2>&1 | Tee-Object -FilePath "{output_name}";
         Get-Content "{output_name}" -Tail {max_lines} | Set-Content "temp.txt";
         Move-Item -Force "temp.txt" "{output_name}"
         """
         subprocess.run(["powershell", "-Command", redirection_command], env=env)
     else:
+        # On Unix-like systems, remove the append flag.
         redirection_command = (
             f'"{python_path}" "{script_path}" {args} 2>&1 '
-            f'| tee -a "{output_name}" | tail -n {max_lines} > temp.txt && mv temp.txt "{output_name}"'
+            f'| tee "{output_name}" | tail -n {max_lines} > temp.txt && mv temp.txt "{output_name}"'
         )
         subprocess.run(redirection_command, shell=True, env=env)
 
     sys.exit()
+
 
 def pack_message(SECRET_KEY: str, data) -> bytes:
     # Serialize the data with a fixed protocol
@@ -181,6 +189,7 @@ class RemoteFunctions:
         self._password_hash = self.set_password(password=password)
         self.no_queue_list = [] # List of functions to run directly
         self.ssl_context = None  # Initialize SSL context attribute
+        self.frequency = 2 # If output is enabled then setup a frequency for an output get request
 
 
         self.is_queue = is_queue
@@ -487,9 +496,10 @@ class RemoteFunctions:
     
     def _start_output_listening(self):
         last_message = ""
-
         ignored_last_response = False
         while self.client_started:
+            delay = 1/self.frequency
+
             new_message = self._get_output()
 
             received_message = subtract_overlap(last_message, new_message)
@@ -505,7 +515,7 @@ class RemoteFunctions:
                     print(prefixed_message)
             
             last_message = new_message
-            time.sleep(0.3)
+            time.sleep(delay)
 
     def connect_to_server(self, address, port) -> bool:
         """
