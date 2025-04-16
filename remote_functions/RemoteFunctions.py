@@ -554,7 +554,7 @@ class RemoteFunctions:
             last_message = new_message
             time.sleep(delay)
 
-    def connect_to_server(self, address, port) -> bool:
+    def connect_to_server(self, address, port, start_output_listener_if_available=True) -> bool:
         """
         Set the remote server address for client operations and start output listening in a separate thread.
 
@@ -581,7 +581,7 @@ class RemoteFunctions:
         if ping_result:
             self.client_started = True
 
-            if self.supports_output_streaming(): # If it supports output streaming, we start a listening system
+            if self.supports_output_streaming() and start_output_listener_if_available: # If it supports output streaming, we start a listening system
                 # Start _start_output_listening in a separate daemon thread
                 threading.Thread(target=self._start_output_listening, daemon=True).start()
 
