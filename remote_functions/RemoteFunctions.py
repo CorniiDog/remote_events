@@ -151,6 +151,7 @@ def unpack_message(SECRET_KEY: str, message_bytes: bytes):
     # Return the original data by unpickling the payload
     return pickle.loads(payload)
 
+
 class RemoteFunctions:
     """
     A class to facilitate remote function registration, listing, and invocation via HTTP.
@@ -554,7 +555,16 @@ class RemoteFunctions:
             last_message = new_message
             time.sleep(delay)
 
-    def connect_to_server(self, address, port, start_output_listener_if_available=True) -> bool:
+    def _set_connection_to_server_params(self, address: str, port: int):
+        if self.client_started:
+            raise ConnectionRefusedError("Connection already established and started.")
+        
+        if self.ssl_context:  # If there is SSL key verification, use HTTPS
+            self.server_url = f"https://{address}:{port}"
+        else:  # Otherwise, use HTTP
+            self.server_url = f"http://{address}:{port}"
+        
+    def connect_to_server(self, address: str, port: int, start_output_listener_if_available=True) -> bool:
         """
         Set the remote server address for client operations and start output listening in a separate thread.
 
@@ -571,10 +581,7 @@ class RemoteFunctions:
         self.is_server = False
         self.is_client = True
 
-        if self.ssl_context:  # If there is SSL key verification, use HTTPS
-            self.server_url = f"https://{address}:{port}"
-        else:  # Otherwise, use HTTP
-            self.server_url = f"http://{address}:{port}"
+        self._set_connection_to_server_params(address, port)
 
         ping_result = self.ping()
 
